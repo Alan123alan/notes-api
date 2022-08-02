@@ -37,3 +37,7 @@ def init_db_command():
     """Clear the existing data and create new tables."""
     init_db()
     click.echo('Initialized the database.')
+
+def init_app(app):
+    app.teardown_appcontext(close_db) # tells flask to call a function when cleaning up after returning response
+    app.cli.add_command(init_db_command) # adds a new command that can be called with the flask command.
