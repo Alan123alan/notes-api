@@ -1,6 +1,5 @@
 import os
 from flask import Flask
-
 from flaskr.db import init_app
 from . import auth
 
@@ -13,6 +12,7 @@ def create_app(test_config=None):
         SECRET_KEY="dev",# Used to keep data safe
         DATABASE=os.path.join(app.instance_path,"flaskr.sqlite")
     )
+    print(test_config)
     if test_config is None:
         # load the instance config, if it exists, when not testing
         app.config.from_pyfile('config.py', silent=True)
