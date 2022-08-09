@@ -1,8 +1,8 @@
 import os
 from flask import Flask
-from flaskr.db import init_app
+from .db import init_app
 from . import auth # using "." or "flaskr" means the same when importing a module
-from flaskr import blog
+from . import blog
 
 def create_app(test_config=None):
     # Create and configure the app
@@ -38,3 +38,5 @@ def create_app(test_config=None):
     app.add_url_rule(rule="/", endpoint="index")
 
     return app
+
+
