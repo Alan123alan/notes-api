@@ -1,3 +1,6 @@
 __pycache__/
 venv/
 instance/
+.env
+id_rsa
+id_rsa.pub
