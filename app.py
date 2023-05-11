@@ -8,6 +8,7 @@ from flask import jsonify
 from flask import request
 from models import *
 from pony.orm import db_session
+from pony.orm import select
 
 PRIVATE_KEY = serialization.load_ssh_private_key(open("id_rsa", "r").read().encode(), password=b"") 
 
@@ -31,21 +32,36 @@ def login():
     token = jwt.encode(payload=request.json,key=PRIVATE_KEY, algorithm="RS256")
     return {"token":token} 
 
-# @app.get("/notes")
-# def notes():
-#     notes = [{
-#         "author" : "Alan",
-#         "created" : datetime.datetime.now(),
-#         "note" : "Some note."
-#     }]
-#     return notes
-
 @app.post("/notes")
 @db_session
 def post_notes():
     body = request.json
-    note = Note(author=body["author"], title=body["title"], body=body["body"])
-    return {"author":note.author}
+    author = Author(name=body["author"])
+    note = Note(author=author, title=body["title"], body=body["body"])
+    return note.__dict__()
+
+
+@app.get("/notes")
+@db_session
+def get_notes():
+    notes = [n.__dict__() for n in list(select(note for note in Note)[:])]
+    print(notes)
+    return notes
+
+
+@app.get("/notes/<string:author_name>")
+@db_session
+def get_author_notes(author_name):
+    notes = [n.__dict__() for n in list(select(note for note in Note if note.author.name == author_name)[:])]
+    print(notes)
+    return notes
+
+
+@app.get("/notes/<int:id>")
+@db_session
+def get_note(id):
+    notes = [n.__dict__() for n in list(select(n for n in Note if n.id == id)[:])]
+    return notes
 
 
 if(__name__ == "__main__"):
