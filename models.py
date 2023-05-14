@@ -2,6 +2,20 @@ from pony import orm
 
 db = orm.Database()
 
+class User(db.Entity):
+    __table__ = "Users"
+    public_id = orm.Required(str)
+    name = orm.Required(str)
+    password = orm.Required(str)
+    is_admin = orm.Optional(bool)
+    def __dict__(self):
+        return {
+            "public_id":self.public_id,
+            "name":self.name,
+            "password":self.password,
+            "isAdmin":self.is_admin
+        }
+
 class Author(db.Entity):
     _table_ = "Authors"
     name = orm.Required(str)
