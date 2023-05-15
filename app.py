@@ -15,27 +15,37 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import uuid
 
 PRIVATE_KEY = serialization.load_ssh_private_key(open("id_rsa", "r").read().encode(), password=b"") 
-
-def token_required(f):
-    @wraps(f)
-    @db_session
-    def decorator(*args, **kwargs):
-        token = None
-        if "x-access-tokens" in request.headers:
-            token = request.headers["x-access-tokens"]
-        else:
-            return {"message":"A valid token is missing."}
-        try:
-            data:jwt.decode(jwt=token, key=PRIVATE_KEY, algorithms=["RS256"])
-            current_user = select(user for user in User if user.public_id == data.public_id)[0]
-            return f(current_user, *args, **kwargs)
-        except:
-            return {"message":"Token is invalid."}
-    return decorator
+PUBLIC_KEY = serialization.load_ssh_public_key(open("id_rsa.pub", "r").read().encode())
 
 #Loading secret key from .env file to environment variables then loading into app
 # load_dotenv(find_dotenv())
 # SECRET_KEY = os.getenv("SECRET_KEY")
+
+def token_required(f):
+    @wraps(f)
+    # The db session decorator seems to not be needed since when applying 
+    # @token_required to the endpoint function the @db_session will wrap it 
+    # @db_session
+    def decorator(*args, **kwargs):
+        token = None
+        data = None
+        current_user = None
+        if "x-access-tokens" in request.headers:
+            token = request.headers.get("x-access-tokens")
+        else:
+            return {"message":"A valid token is missing."}
+        try:
+            data = jwt.decode(jwt=token, key=PUBLIC_KEY, algorithms=["RS256", ])
+            current_user = select(user for user in User if user.public_id == data["public_id"])
+            if current_user:
+                return f(*args, **kwargs)
+        except:
+            return {"message":"Token is invalid.", "token":token, "data": data, "current_user":current_user}
+    return decorator
+
+
+def check_if_registered(username:str, password:str)->bool:
+    pass
 
 
 db.bind("sqlite", "app.db", create_db=True)
@@ -43,7 +53,6 @@ db.generate_mapping(create_tables=True)
 
 
 app = Flask(__name__)
-
 
 
 @app.post("/register")
@@ -65,14 +74,15 @@ def login():
     #token = jwt.encode(payload=request.json,key=SECRET_KEY, algorithm="HSA256")
     payload = request.json
     user = select(user for user in User if user.public_id == payload["public_id"])
-    print(user)
     if user:
         token = jwt.encode(payload=payload,key=PRIVATE_KEY, algorithm="RS256")
-        return {"token":token}
+        return {"token":token, "payload":payload}
     return {"message":"Invalid username or password"} 
+
 
 @app.post("/notes")
 @db_session
+@token_required
 def post_notes():
     body = request.json
     author = Author(name=body["author"])
